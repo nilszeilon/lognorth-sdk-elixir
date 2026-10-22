@@ -20,6 +20,14 @@ defmodule Lognorth.LoggerHandler do
   defp format(msg, _meta), do: format(msg)
 
   @doc false
+  def format({:report, report}) do
+    format_report(report, %{})
+  rescue
+    _ -> inspect(report, limit: 20, printable_limit: 4_000)
+  catch
+    _, _ -> inspect(report, limit: 20, printable_limit: 4_000)
+  end
+
   def format({:string, msg}), do: IO.chardata_to_string(msg)
 
   def format({format, args}) do
@@ -30,14 +38,6 @@ defmodule Lognorth.LoggerHandler do
     _ -> inspect({format, args}, limit: 20, printable_limit: 2_000)
   catch
     _, _ -> inspect({format, args}, limit: 20, printable_limit: 2_000)
-  end
-
-  def format({:report, report}) do
-    format_report(report, %{})
-  rescue
-    _ -> inspect(report, limit: 20, printable_limit: 4_000)
-  catch
-    _, _ -> inspect(report, limit: 20, printable_limit: 4_000)
   end
 
   def format(other), do: inspect(other, limit: 20, printable_limit: 2_000)

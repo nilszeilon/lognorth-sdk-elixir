@@ -45,9 +45,15 @@ defmodule Lognorth.Client do
   @doc false
   def emit(event, kind), do: GenServer.cast(__MODULE__, {:enqueue, event, kind})
 
+  # Phoenix's own request log ("GET /", "Sent 200 in …") duplicates the event
+  # the Plug sends, so it is dropped while a Plug request is in flight. Matched
+  # by module name, not by message: no dependency on Phoenix.
+  @phoenix_logger :"Elixir.Phoenix.Logger"
+  @plug_logger :"Elixir.Plug.Logger"
+
   @doc false
   def logger_event(level, text, meta) do
-    if Config.configured?() do
+    if Config.configured?() and not request_log?(meta) do
       trace_id = meta[:request_id] || Lognorth.trace_id()
 
       context = %{
@@ -79,6 +85,15 @@ defmodule Lognorth.Client do
 
     :ok
   end
+
+  defp request_log?(meta) do
+    Process.get(:lognorth_plug) == true and request_logger?(meta[:mfa])
+  end
+
+  defp request_logger?({module, _fun, _arity}) when module in [@phoenix_logger, @plug_logger],
+    do: true
+
+  defp request_logger?(_), do: false
 
   def flush, do: GenServer.call(__MODULE__, :flush, @request_timeout + 5_000)
 

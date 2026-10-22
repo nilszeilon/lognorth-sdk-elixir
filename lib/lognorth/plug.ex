@@ -22,6 +22,8 @@ if Code.ensure_loaded?(Plug) do
 
     @impl true
     def call(conn, opts) do
+      # Tells the Logger handler that this request is already an event.
+      Process.put(:lognorth_plug, true)
       path = conn.request_path
 
       if ignored?(path, opts) do
