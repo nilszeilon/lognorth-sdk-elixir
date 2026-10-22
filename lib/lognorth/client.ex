@@ -86,8 +86,11 @@ defmodule Lognorth.Client do
     :ok
   end
 
+  # Phoenix logs the request itself, before any plug runs and after the
+  # response, and the Plug sends the same request as one event. Skipped by
+  # default; set `config :lognorth, skip_request_logs: false` to keep them.
   defp request_log?(meta) do
-    Process.get(:lognorth_plug) == true and request_logger?(meta[:mfa])
+    Application.get_env(:lognorth, :skip_request_logs, true) and request_logger?(meta[:mfa])
   end
 
   defp request_logger?({module, _fun, _arity}) when module in [@phoenix_logger, @plug_logger],

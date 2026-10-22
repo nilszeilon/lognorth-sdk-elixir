@@ -86,7 +86,6 @@ defmodule Lognorth.RequestLogTest do
     )
 
     on_exit(fn ->
-      Process.delete(:lognorth_plug)
       if Process.whereis(:lognorth_test), do: Process.unregister(:lognorth_test)
       Application.delete_env(:lognorth, :test_response)
     end)
@@ -94,9 +93,7 @@ defmodule Lognorth.RequestLogTest do
     :ok
   end
 
-  test "Phoenix's own request log is dropped while a Plug request is in flight" do
-    Process.put(:lognorth_plug, true)
-
+  test "Phoenix's own request log is dropped" do
     capture_log(fn ->
       Lognorth.Client.logger_event(:info, "GET /",
         mfa: {Phoenix.Logger, :phoenix_endpoint_start, 4}
@@ -111,7 +108,10 @@ defmodule Lognorth.RequestLogTest do
     refute_receive {:posted, _}, 50
   end
 
-  test "the same lines are kept when no Plug handled the request" do
+  test "the same lines are kept when skip_request_logs is off" do
+    Application.put_env(:lognorth, :skip_request_logs, false)
+    on_exit(fn -> Application.delete_env(:lognorth, :skip_request_logs) end)
+
     capture_log(fn ->
       Lognorth.Client.logger_event(:info, "GET /",
         mfa: {Phoenix.Logger, :phoenix_endpoint_start, 4}
